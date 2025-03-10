@@ -1,0 +1,93 @@
+# PersistentVolume  
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: huidong-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: default
+    name: huidong-pvc
+  storageClassName: ""
+  gcePersistentDisk:
+    pdName: huidong-disk
+    fsType: ext4
+    readOnly: false
+    
+---
+# PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: huidong-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: ""
+  volumeName: huidong-pv
+
+---
+# Deployment
+# Put both containers in the same pod, allowing them to share the volume with ReadWriteOnce access mode. 
+# It also simplifies communication between them - instead of using 
+# Kubernetes service discovery, they can communicate via localhost since they're in the same pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microservices
+spec:
+  replicas: 1  # Runs one replica of your container
+  selector:
+    matchLabels:
+      app: microservices
+  template:
+    metadata:
+      labels:
+        app: microservices
+    spec:
+      containers: 
+      ### container 1 ### 
+      - name: api-gateway
+        image: us-central1-docker.pkg.dev/kubernetes-452918/k8s-assignment-images/api-gateway:latest # Uses the API Gateway Docker image from Artifact Registry
+        ports:
+        - containerPort: 6000  # Exposes port 6000 within the cluster (matches the port exposed in container1 Dockerfile)
+        env:  # Sets an environment variable PROCESSOR_SERVICE_URL that allows it to communicate with the processor service
+        - name: PROCESSOR_SERVICE_URL
+          value: "http://localhost:3000"
+        volumeMounts: # Mounts the persistent volume at /huidong_PV_dir 
+        - name: data-volume
+          mountPath: /huidong_PV_dir
+      ## container 2 ### 
+      - name: processor-service
+        image: us-central1-docker.pkg.dev/kubernetes-452918/k8s-assignment-images/processor-service:latest # Uses the API Gateway Docker image from Artifact Registry
+        ports:
+        - containerPort: 3000  # Exposes port 3000 within the cluster (matches the port exposed in container2 Dockerfile)
+        volumeMounts: # Mounts the persistent volume at /huidong_PV_dir 
+        - name: data-volume
+          mountPath: /huidong_PV_dir
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: huidong-pvc
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+spec:
+  selector:
+    app: microservices
+  ports:
+  - port: 80 # the port that the service exposes externally. When external traffic comes to the service (via the load balancer), it will come to port 80, which is the standard HTTP port. 
+    targetPort: 6000
+  type: LoadBalancer # the port that the container is listening on internally. This matches the EXPOSE 6000 directive in the API Gateway's Dockerfile and the containerPort: 6000 in the Kubernetes deployment.
+

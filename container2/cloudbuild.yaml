@@ -1,0 +1,31 @@
+steps:
+# Build API Gateway Container
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA', './api-gateway']
+
+# Build Processor Service Container  
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA', './processor-service']
+
+# Push API Gateway Container to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA']
+
+# Push Processor Service Container to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA']
+
+# Use the latest gke-deploy container
+- name: 'gcr.io/cloud-builders/gke-deploy'
+  args:
+  - run
+  - --filename=kubernetes-deployment.yaml
+  - --image=us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA,us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA
+  - --location=us-central1-c
+  - --cluster=your-name-gke-cluster
+
+images:
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:latest'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:latest'
