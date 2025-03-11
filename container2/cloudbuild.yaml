@@ -25,7 +25,7 @@ steps:
   - --filename=kubernetes-deployment.yaml
   - --image=us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA,us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA
   - --location=us-central1-c
-  - --cluster=your-name-gke-cluster
+  - --cluster=huidong-gke-cluster
 
 images:
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA'
