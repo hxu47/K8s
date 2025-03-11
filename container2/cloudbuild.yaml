@@ -2,33 +2,34 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-# Build API Gateway Container
+# Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA', './api-gateway']
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:$COMMIT_SHA', '.']
+  dir: 'container2'
 
-# Build Processor Service Container  
+# Push the container image to Artifact Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA', './processor-service']
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:$COMMIT_SHA']
 
-# Push API Gateway Container to Artifact Registry
+# Tag as latest
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA']
+  args: ['tag', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:$COMMIT_SHA', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:latest']
 
-# Push Processor Service Container to Artifact Registry
+# Push the "latest" tag
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA']
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:latest']
 
-# Use the latest gke-deploy container
-- name: 'gcr.io/cloud-builders/gke-deploy'
+# Deploy to GKE
+- name: 'gcr.io/cloud-builders/kubectl'
   args:
-  - run
-  - --filename=kubernetes-deployment.yaml
-  - --image=us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA,us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA
-  - --location=us-central1-c
-  - --cluster=huidong-gke-cluster
+  - 'set'
+  - 'image'
+  - 'deployment/microservices'
+  - 'processor-service=us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:$COMMIT_SHA'
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-c'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=huidong-gke-cluster'
 
 images:
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:$COMMIT_SHA'
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:$COMMIT_SHA'
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/api-gateway:latest'
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/your-repo/processor-service:latest'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:$COMMIT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/k8s-assignment-images/processor-service:latest'
