@@ -95,5 +95,5 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
     console.log(`API Gateway service listening on port ${PORT}`);
     console.log(`Using data directory: ${DATA_DIR}`);
-    console.log(`CI/CD pipeline test - Server started successfully at ${new Date().toISOString()}`);
+    console.log(`CI/CD pipeline test1 - Server started successfully at ${new Date().toISOString()}`);
 });
